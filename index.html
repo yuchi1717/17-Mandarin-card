@@ -11,6 +11,7 @@
             --control-panel-bg: #ffffff;
             --primary-blue: #007bff;
             --success-green: #28a745;
+            --danger-red: #dc3545;
             --card-border-color: #CCCCCC;
         }
 
@@ -38,7 +39,7 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.1);
             margin-bottom: 30px;
             width: 90%;
-            max-width: 900px;
+            max-width: 950px;
         }
 
         textarea {
@@ -81,7 +82,7 @@
             border-radius: 4px;
         }
 
-        /* Logo 上傳相關樣式 */
+        /* Logo 上傳與移除按鈕 */
         .logo-upload-group {
             display: flex;
             align-items: center;
@@ -90,12 +91,23 @@
             padding-left: 15px;
         }
 
+        .remove-logo-btn {
+            padding: 5px 10px;
+            font-size: 12px;
+            background-color: var(--danger-red);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: none; /* 預設隱藏，有圖片才顯示 */
+        }
+
         .btn-group {
             display: flex;
             gap: 12px;
         }
 
-        button {
+        button.main-btn {
             padding: 12px 28px;
             font-size: 16px;
             cursor: pointer;
@@ -107,7 +119,7 @@
             transition: 0.2s;
         }
 
-        button:hover { opacity: 0.9; }
+        button.main-btn:hover { opacity: 0.9; }
         #print-btn { background-color: var(--success-green); }
 
         /* A4 佈局 */
@@ -125,7 +137,6 @@
             overflow: hidden;
         }
 
-        /* 字卡樣式 */
         .card {
             border: 2px dashed var(--card-border-color);
             display: flex;
@@ -135,18 +146,17 @@
             text-align: center;
             padding: 10px;
             background: white;
-            position: relative; /* 必備，讓 Logo 相對此容器定位 */
+            position: relative;
             box-sizing: border-box;
             overflow: hidden;
         }
 
-        /* Logo 在字卡左上角的樣式 */
         .card-logo {
             position: absolute;
             top: 5mm;
             left: 5mm;
-            max-width: 20%; /* 寬度佔字卡的 20% */
-            max-height: 20%; /* 高度佔字卡的 20% */
+            max-width: 18%;
+            max-height: 18%;
             object-fit: contain;
         }
 
@@ -156,7 +166,7 @@
             width: 100%;
             outline: none;
             font-family: Arial, sans-serif;
-            z-index: 1; /* 確保文字在 Logo 之上 */
+            z-index: 1;
         }
 
         .char-text {
@@ -214,22 +224,21 @@
                 <input type="checkbox" id="showPinyin" checked>
                 <label for="showPinyin">顯示拼音</label>
             </div>
-            <!-- Logo 上傳 -->
             <div class="logo-upload-group setting-item">
-                上傳 Logo：
+                Logo：
                 <input type="file" id="logoInput" accept="image/*">
+                <button class="remove-logo-btn" id="removeLogoBtn" onclick="removeLogo()">移除 Logo</button>
             </div>
         </div>
 
         <div class="btn-group">
-            <button onclick="generateCards()">產生字卡</button>
-            <button id="print-btn" onclick="window.print()">列印成 PDF</button>
+            <button class="main-btn" onclick="generateCards()">產生字卡</button>
+            <button class="main-btn" id="print-btn" onclick="window.print()">列印成 PDF</button>
         </div>
         <div class="edit-hint">
             <strong>【使用說明】</strong><br>
-            1. 輸入文字（支援 <strong>/</strong> 或 <strong>換行</strong> 斷詞）。<br>
-            2. <strong>上傳 Logo</strong> 後點擊產生，Logo 會自動出現在每張字卡左上角。<br>
-            3. 字卡產生後，可直接點擊文字內容進行手動編輯。
+            1. 支援使用 <strong>/</strong> 或 <strong>換行</strong> 來切分字卡。 2. 上傳 Logo 後會顯示在字卡左上角。<br>
+            3. 產生後可直接點擊頁面上的<strong>文字或拼音</strong>進行手動修改，確認無誤後即可列印。
         </div>
     </div>
 
@@ -245,12 +254,20 @@
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     uploadedLogoBase64 = event.target.result;
-                    // 上傳後自動重新產生字卡預覽
+                    document.getElementById('removeLogoBtn').style.display = 'inline-block';
                     generateCards();
                 };
                 reader.readAsDataURL(file);
             }
         });
+
+        // 移除 Logo 功能
+        function removeLogo() {
+            uploadedLogoBase64 = null;
+            document.getElementById('logoInput').value = ""; // 清空 input
+            document.getElementById('removeLogoBtn').style.display = 'none'; // 隱藏按鈕
+            generateCards(); // 重新產生
+        }
 
         function getPinyin(text) {
             if (typeof pinyinPro !== 'undefined') {
@@ -273,12 +290,11 @@
             const words = inputElement.value.split(/[\/\n\r]+/).filter(w => w.trim() !== "");
             
             if (words.length === 0) {
-                alert("請輸入文字內容！");
+                container.innerHTML = '';
                 return;
             }
 
             container.innerHTML = ''; 
-
             const itemsPerPage = cols * rows;
 
             for (let i = 0; i < words.length; i += itemsPerPage) {
@@ -293,7 +309,6 @@
                     const cardDiv = document.createElement('div');
                     cardDiv.className = 'card';
 
-                    // --- 插入 Logo ---
                     if (uploadedLogoBase64) {
                         const logoImg = document.createElement('img');
                         logoImg.src = uploadedLogoBase64;
@@ -301,42 +316,34 @@
                         cardDiv.appendChild(logoImg);
                     }
 
-                    // --- 拼音部分 ---
                     if (isPinyinEnabled) {
                         const pinyinDiv = document.createElement('div');
                         pinyinDiv.className = 'pinyin-text';
                         pinyinDiv.contentEditable = "true";
                         pinyinDiv.style.color = pColor;
                         pinyinDiv.innerText = getPinyin(word);
-                        
                         let pSize = Math.min(30, 100 / cols);
                         pinyinDiv.style.fontSize = pSize + "px";
-                        
                         cardDiv.appendChild(pinyinDiv);
                     }
 
-                    // --- 漢字部分 ---
                     const charDiv = document.createElement('div');
                     charDiv.className = 'char-text';
                     charDiv.contentEditable = "true";
                     charDiv.style.color = cColor;
                     charDiv.innerText = word;
-                    
                     let baseSize = 260 / Math.max(cols, rows);
                     let charSize = Math.min(100, baseSize / (word.length > 2 ? word.length * 0.5 : 1));
                     charDiv.style.fontSize = charSize + "px";
-                    
                     cardDiv.appendChild(charDiv);
+                    
                     pageDiv.appendChild(cardDiv);
                 });
-
                 container.appendChild(pageDiv);
             }
         }
 
-        window.onload = function() {
-            generateCards();
-        };
+        window.onload = generateCards;
     </script>
 </body>
 </html>
