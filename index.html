@@ -4,16 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>17 Mandarin：字卡產生器</title>
-    <!-- 引入拼音套件 -->
     <script src="https://unpkg.com/pinyin-pro"></script>
     <style>
-        /* 1. 網頁底色：嫩黃色 */
         :root {
             --bg-color: #FFFDE7; 
             --control-panel-bg: #ffffff;
             --primary-blue: #007bff;
             --success-green: #28a745;
-            --card-border-color: #CCCCCC; /* 淺灰色 */
+            --card-border-color: #CCCCCC;
         }
 
         body {
@@ -45,7 +43,7 @@
 
         textarea {
             width: 100%;
-            height: 120px;
+            height: 100px;
             padding: 12px;
             box-sizing: border-box;
             border: 2px solid #E0E0E0;
@@ -53,7 +51,6 @@
             font-size: 16px;
             margin-bottom: 15px;
             display: block;
-            line-height: 1.5;
         }
 
         .setting-row {
@@ -74,6 +71,7 @@
             gap: 8px;
             font-weight: bold;
             color: #444;
+            font-size: 14px;
         }
 
         input[type="number"] {
@@ -81,6 +79,15 @@
             padding: 5px;
             border: 1px solid #ccc;
             border-radius: 4px;
+        }
+
+        /* Logo 上傳相關樣式 */
+        .logo-upload-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 2px solid #ddd;
+            padding-left: 15px;
         }
 
         .btn-group {
@@ -100,11 +107,10 @@
             transition: 0.2s;
         }
 
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
-
+        button:hover { opacity: 0.9; }
         #print-btn { background-color: var(--success-green); }
 
-        /* A4 橫式佈局設定 */
+        /* A4 佈局 */
         .page {
             width: 297mm;
             height: 210mm;
@@ -119,7 +125,7 @@
             overflow: hidden;
         }
 
-        /* 字卡樣式：淺灰色虛線框 */
+        /* 字卡樣式 */
         .card {
             border: 2px dashed var(--card-border-color);
             display: flex;
@@ -129,8 +135,19 @@
             text-align: center;
             padding: 10px;
             background: white;
-            position: relative;
+            position: relative; /* 必備，讓 Logo 相對此容器定位 */
             box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* Logo 在字卡左上角的樣式 */
+        .card-logo {
+            position: absolute;
+            top: 5mm;
+            left: 5mm;
+            max-width: 20%; /* 寬度佔字卡的 20% */
+            max-height: 20%; /* 高度佔字卡的 20% */
+            object-fit: contain;
         }
 
         .pinyin-text {
@@ -139,6 +156,7 @@
             width: 100%;
             outline: none;
             font-family: Arial, sans-serif;
+            z-index: 1; /* 確保文字在 Logo 之上 */
         }
 
         .char-text {
@@ -147,6 +165,7 @@
             width: 100%;
             outline: none;
             word-break: break-all;
+            z-index: 1;
         }
 
         .edit-hint {
@@ -157,7 +176,6 @@
             line-height: 1.6;
         }
 
-        /* 列印模式修正 */
         @media print {
             body { background: none !important; padding: 0 !important; }
             .controls, .header-title, .edit-hint { display: none !important; }
@@ -178,14 +196,7 @@
     <div class="header-title">17 Mandarin：字卡產生器</div>
 
     <div class="controls">
-        <!-- 更新提示 placeholder -->
-        <textarea id="inputText" placeholder="請輸入文字，每一詞用 / 隔開或直接「換行」...
-例如：
-謝謝/老師/台灣
-或是：
-蘋果
-香蕉
-鳳梨">謝謝/老師/台灣/漂亮/朋友/學習/開心/太陽/月亮</textarea>
+        <textarea id="inputText" placeholder="請輸入文字，每一詞用 / 隔開或換行...">謝謝/老師/台灣/漂亮/朋友/學習/開心/太陽/月亮</textarea>
         
         <div class="setting-row">
             <div class="setting-item">
@@ -203,25 +214,44 @@
                 <input type="checkbox" id="showPinyin" checked>
                 <label for="showPinyin">顯示拼音</label>
             </div>
+            <!-- Logo 上傳 -->
+            <div class="logo-upload-group setting-item">
+                上傳 Logo：
+                <input type="file" id="logoInput" accept="image/*">
+            </div>
         </div>
 
         <div class="btn-group">
             <button onclick="generateCards()">產生字卡</button>
             <button id="print-btn" onclick="window.print()">列印成 PDF</button>
         </div>
-        <!-- 更新提示說明 -->
         <div class="edit-hint">
             <strong>【使用說明】</strong><br>
-            1. 在上方輸入文字，使用<strong>斜線 (/)</strong> 或 <strong>按下 Enter 換行</strong> 來區分不同字卡。<br>
-            2. 產生後，可直接點擊頁面上的<strong>「漢字」</strong>或<strong>「拼音」</strong>進行內容修改（可用於修正台灣慣用讀音）。<br>
-            3. 字卡框線為<strong>淺灰色虛線</strong>，方便列印後裁剪。
+            1. 輸入文字（支援 <strong>/</strong> 或 <strong>換行</strong> 斷詞）。<br>
+            2. <strong>上傳 Logo</strong> 後點擊產生，Logo 會自動出現在每張字卡左上角。<br>
+            3. 字卡產生後，可直接點擊文字內容進行手動編輯。
         </div>
     </div>
 
     <div id="print-area"></div>
 
     <script>
-        // 取得拼音函式
+        let uploadedLogoBase64 = null;
+
+        // 處理圖片上傳
+        document.getElementById('logoInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedLogoBase64 = event.target.result;
+                    // 上傳後自動重新產生字卡預覽
+                    generateCards();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
         function getPinyin(text) {
             if (typeof pinyinPro !== 'undefined') {
                 return pinyinPro.pinyin(text, { toneType: 'symbol' });
@@ -240,11 +270,10 @@
             const cColor = document.getElementById('charColor').value;
             const isPinyinEnabled = document.getElementById('showPinyin').checked;
 
-            // 修改處：使用正規表達式 split(/[\/\n\r]+/) 同時支援斜線與換行
             const words = inputElement.value.split(/[\/\n\r]+/).filter(w => w.trim() !== "");
             
             if (words.length === 0) {
-                alert("請在輸入框內輸入文字！");
+                alert("請輸入文字內容！");
                 return;
             }
 
@@ -264,6 +293,15 @@
                     const cardDiv = document.createElement('div');
                     cardDiv.className = 'card';
 
+                    // --- 插入 Logo ---
+                    if (uploadedLogoBase64) {
+                        const logoImg = document.createElement('img');
+                        logoImg.src = uploadedLogoBase64;
+                        logoImg.className = 'card-logo';
+                        cardDiv.appendChild(logoImg);
+                    }
+
+                    // --- 拼音部分 ---
                     if (isPinyinEnabled) {
                         const pinyinDiv = document.createElement('div');
                         pinyinDiv.className = 'pinyin-text';
@@ -271,19 +309,20 @@
                         pinyinDiv.style.color = pColor;
                         pinyinDiv.innerText = getPinyin(word);
                         
-                        let pSize = Math.min(35, 120 / cols);
+                        let pSize = Math.min(30, 100 / cols);
                         pinyinDiv.style.fontSize = pSize + "px";
                         
                         cardDiv.appendChild(pinyinDiv);
                     }
 
+                    // --- 漢字部分 ---
                     const charDiv = document.createElement('div');
                     charDiv.className = 'char-text';
                     charDiv.contentEditable = "true";
                     charDiv.style.color = cColor;
                     charDiv.innerText = word;
                     
-                    let baseSize = 280 / Math.max(cols, rows);
+                    let baseSize = 260 / Math.max(cols, rows);
                     let charSize = Math.min(100, baseSize / (word.length > 2 ? word.length * 0.5 : 1));
                     charDiv.style.fontSize = charSize + "px";
                     
